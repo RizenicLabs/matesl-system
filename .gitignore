@@ -4,12 +4,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Production builds
-dist/
-build/
-.next/
-.expo/
-
 # Environment variables
 .env
 .env.local
@@ -21,24 +15,60 @@ packages/*/.env
 packages/*/.env.local
 *.pem
 
-# IDE
+# Production builds
+dist/
+build/
+.next/
+.expo/
+out/
+
+# TypeScript build info (auto-generated)
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Prisma generated client (auto-generated)
+packages/database/src/generated/
+**/prisma/generated/
+
+# IDE files
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
 # Logs
+logs/
 *.log
 
 # Database
 *.db
 *.sqlite
 
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Temporary folders
+tmp/
+temp/
+
 # Docker
 .docker/
+.dockerignore
 
 # Misc
 .turbo/
 coverage/
+
+# Uploads
+uploads/
+public/uploads/

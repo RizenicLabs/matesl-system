@@ -143,6 +143,28 @@ else
     exit 1
 fi
 
+# Step 2.5: Build shared packages first
+print_info "Step 2.5: Building shared packages in correct order..."
+
+# Build shared package first
+print_info "Building @matesl/shared..."
+cd packages/shared
+if npm run build; then
+    print_status "Shared package built successfully"
+else
+    print_error "Failed to build shared package"
+    exit 1
+fi
+cd ../..
+
+# Link workspaces to ensure proper resolution
+print_info "Linking workspace dependencies..."
+if npm run build --workspace=shared; then
+    print_status "Workspace linking completed"
+else
+    print_warning "Workspace linking had issues (continuing anyway)"
+fi
+
 # Step 3: Start databases with health checks
 print_info "Step 3: Starting database services..."
 
@@ -221,7 +243,15 @@ else
     exit 1
 fi
 
-# Seed database
+# Build database package now that shared is available
+print_info "Building database package..."
+if npm run build; then
+    print_status "Database package built successfully"
+else
+    print_warning "Database package build failed (continuing anyway)"
+fi
+
+# Seed database (now that everything is built)
 print_info "Seeding database..."
 if npm run db:seed; then
     print_status "Database seeded successfully"
@@ -248,28 +278,29 @@ if [ -f "packages/ai-service/.env" ]; then
         print_warning "Hugging Face API key not configured"
     fi
 else
-    print_warning "AI service environment file not found - creating template"
-    cp packages/ai-service/.env.example packages/ai-service/.env 2>/dev/null || true
+    print_warning "AI service environment file not found"
 fi
 
-# Step 6: Build packages
-print_info "Step 6: Building shared packages..."
+# Step 6: Build remaining packages
+print_info "Step 6: Building remaining packages..."
 
-# Build shared first
-cd packages/shared
+# Build ai-service
+print_info "Building AI service..."
+cd packages/ai-service
 if npm run build; then
-    print_status "Shared package built"
+    print_status "AI service built"
 else
-    print_warning "Shared package build failed"
+    print_warning "AI service build failed"
 fi
 cd ../..
 
-# Build database
-cd packages/database
+# Build API
+print_info "Building API service..."
+cd packages/api
 if npm run build; then
-    print_status "Database package built"
+    print_status "API service built"
 else
-    print_warning "Database package build failed"
+    print_warning "API service build failed"
 fi
 cd ../..
 
@@ -291,6 +322,14 @@ if docker exec matesl_redis redis-cli ping >/dev/null 2>&1; then
     print_status "Redis connection verified"
 else
     print_warning "Redis connection test failed"
+fi
+
+# Test shared package import
+print_info "Testing shared package resolution..."
+if node -e "require('./packages/shared/dist/index.js'); console.log('✅ Shared package works')" 2>/dev/null; then
+    print_status "Shared package resolution verified"
+else
+    print_warning "Shared package resolution test failed"
 fi
 
 echo -e "\n${GREEN}"
@@ -317,7 +356,7 @@ echo -e "   🗄️  Database Studio: $(link_text_with_url 'http://localhost:555
 echo ""
 echo "4. Database connections (updated ports):"
 echo "   📊 PostgreSQL: localhost:5433"
-echo "   🔴 Redis: localhost:6380"
+echo "   🔴 Redis: localhost:6380"  
 echo "   🔍 Elasticsearch: localhost:9201"
 echo ""
 echo "5. Start Database Studio (optional):"

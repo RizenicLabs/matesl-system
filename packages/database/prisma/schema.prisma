@@ -207,6 +207,24 @@ model SystemConfig {
   @@map("system_config")
 }
 
+model FAQ {
+  id          String   @id @default(cuid())
+  question    String
+  questionSi  String
+  questionTa  String
+  answer      String
+  answerSi    String
+  answerTa    String
+  category    ProcedureCategory
+  keywords    String[]        // For search in multiple languages
+  searchTags  String[]        // Tags to improve search relevance
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("faqs")
+}
+
 // Enums
 enum UserRole {
   CITIZEN
