@@ -5,23 +5,33 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+LINK='\033[1;36m'  # bright cyan
 NC='\033[0m' # No Color
+ITALIC='\033[3m' # Italic text
 
 # Function to print colored output
 print_status() {
-    echo -e "${GREEN}✅ $1${NC}"
+    echo -e "${GREEN}✅\u00A0$1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}❌ $1${NC}"
+    echo -e "${RED}❌\u00A0$1${NC}"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠️ $1${NC}"
+    echo -e "${YELLOW}⚠️\u00A0\u00A0$1${NC}"
 }
 
 print_info() {
-    echo -e "${BLUE}ℹ️ $1${NC}"
+    echo -e "${BLUE}ℹ️\u00A0\u00A0$1${NC}"
+}
+
+# Function to create a clickable link
+# Usage: link_text_with_url "text" "http://example.com"
+link_text_with_url() {
+    local text="$1"
+    local url="$2"
+    echo -e "\033]8;;${url}\033\\${LINK}${text}${NC}\033]8;;\033\\"
 }
 
 # Function to check if port is in use
@@ -283,33 +293,35 @@ else
     print_warning "Redis connection test failed"
 fi
 
-echo -e "\n${GREEN}╔══════════════════════════════════════════════════╗"
+echo -e "\n${GREEN}"
+echo "╔══════════════════════════════════════════════════╗"
 echo "║                Setup Complete!                   ║"
-echo "╚══════════════════════════════════════════════════╝${NC}"
+echo "╚══════════════════════════════════════════════════╝"
+echo -e "${NC}"
 
 echo -e "\n${BLUE}📋 Next Steps:${NC}"
 echo "1. Configure API keys in packages/ai-service/.env:"
-echo "   - Get OpenAI API key: https://platform.openai.com/api-keys"
-echo "   - Get Hugging Face API key: https://huggingface.co/settings/tokens"
+echo "   - Get OpenAI API key: $(link_text_with_url 'https://platform.openai.com/api-keys' 'https://platform.openai.com/api-keys')"
+echo "   - Get Hugging Face API key: $(link_text_with_url 'https://huggingface.co/settings/tokens' 'https://huggingface.co/settings/tokens')"
 echo ""
 echo "2. Start development servers (in separate terminals):"
-echo "   ${YELLOW}Terminal 1:${NC} cd packages/ai-service && npm run dev"
-echo "   ${YELLOW}Terminal 2:${NC} cd packages/api && npm run dev"
-echo "   ${YELLOW}Terminal 3:${NC} cd packages/web && npm run dev"
+echo -e "   ${YELLOW}Terminal 1:${NC} cd packages/ai-service && npm run dev"
+echo -e "   ${YELLOW}Terminal 2:${NC} cd packages/api && npm run dev"
+echo -e "   ${YELLOW}Terminal 3:${NC} cd packages/web && npm run dev"
 echo ""
 echo "3. Access your application:"
-echo "   🌐 Web App: http://localhost:3000"
-echo "   🔧 API: http://localhost:3001/health"
-echo "   🤖 AI Service: http://localhost:3003/health"
-echo "   🗄️  Database Studio: http://localhost:5555"
+echo -e "   🌐 Web App: $(link_text_with_url 'http://localhost:3000' 'http://localhost:3000')"
+echo -e "   🔧 API: $(link_text_with_url 'http://localhost:3001/health' 'http://localhost:3001/health')"
+echo -e "   🤖 AI Service: $(link_text_with_url 'http://localhost:3003/health' 'http://localhost:3003/health')"
+echo -e "   🗄️  Database Studio: $(link_text_with_url 'http://localhost:5555' 'http://localhost:5555')"
 echo ""
 echo "4. Database connections (updated ports):"
 echo "   📊 PostgreSQL: localhost:5433"
-echo "   🔴 Redis: localhost:6380"  
+echo "   🔴 Redis: localhost:6380"
 echo "   🔍 Elasticsearch: localhost:9201"
 echo ""
 echo "5. Start Database Studio (optional):"
-echo "   ${YELLOW}cd packages/database && npm run db:studio${NC}"
+echo -e "   ${YELLOW}${ITALIC}~ cd packages/database && npm run db:studio${NC}"
 echo ""
 
 echo -e "${YELLOW}⚠️  Important Notes:${NC}"
@@ -321,13 +333,14 @@ echo ""
 
 echo -e "${BLUE}🚀 Quick Start Commands:${NC}"
 echo "# Start all development servers"
-echo "npm run dev"
+echo -e "${YELLOW}${ITALIC}~ npm run dev${NC}"
 echo ""
 echo "# Or start individually:"
-echo "cd packages/ai-service && npm run dev &"
-echo "cd packages/api && npm run dev &"
-echo "cd packages/web && npm run dev &"
+echo -e "${YELLOW}${ITALIC}~ cd packages/ai-service && npm run dev${NC}"
+echo -e "${YELLOW}${ITALIC}~ cd packages/api && npm run dev${NC}"
+echo -e "${YELLOW}${ITALIC}~ cd packages/web && npm run dev${NC}"
 echo ""
 
 print_status "Setup completed successfully! 🎉"
 print_info "Check the README.md for detailed development instructions"
+echo ""
