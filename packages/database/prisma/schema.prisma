@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String?
+  avatar    String?
+  role      UserRole @default(CITIZEN)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Google OAuth fields
+  googleId       String?
+  emailVerified  Boolean @default(false)
+  verifyToken    String?
+  resetToken     String?
+  resetExpiresAt DateTime?
+
+  // Relations
+  chatSessions ChatSession[]
+  searchHistory SearchHistory[]
+
+  @@map("users")
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user     User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id         String            @id @default(cuid())
+  sessionId  String
+  message    String
+  response   String
+  confidence Float             @default(0.0)
+  category   ProcedureCategory
+  language   Language          @default(EN)
+  timestamp  DateTime          @default(now())
+
+  // Metadata
+  intent      String?
+  entities    Json?
+  procedureId String?
+
+  // Relations
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  procedure Procedure?  @relation(fields: [procedureId], references: [id])
+
+  @@map("chat_messages")
+}
+
+model Procedure {
+  id          String          @id @default(cuid())
+  title       String
+  titleSi     String
+  titleTa     String
+  description String?
+  category    ProcedureCategory
+  status      ProcedureStatus @default(DRAFT)
+  version     Int             @default(1)
+  lastUpdated DateTime        @updatedAt
+  createdAt   DateTime        @default(now())
+
+  // SEO and search
+  slug        String  @unique
+  keywords    String[]
+  searchTags  String[]
+
+  // Relations
+  steps        ProcedureStep[]
+  requirements Requirement[]
+  fees         Fee[]
+  offices      ProcedureOffice[]
+  messages     ChatMessage[]
+  searches     SearchHistory[]
+
+  @@map("procedures")
+}
+
+model ProcedureStep {
+  id           String @id @default(cuid())
+  procedureId  String
+  order        Int
+  instruction  String
+  instructionSi String
+  instructionTa String
+  estimatedTime String?
+  tips         String[]
+  requiredDocs String[]
+
+  // Relations
+  procedure Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+
+  @@unique([procedureId, order])
+  @@map("procedure_steps")
+}
+
+model Requirement {
+  id          String  @id @default(cuid())
+  procedureId String
+  name        String
+  nameSi      String
+  nameTa      String
+  description String?
+  isRequired  Boolean @default(true)
+  order       Int     @default(1)
+
+  // Relations
+  procedure Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+
+  @@map("requirements")
+}
+
+model Fee {
+  id          String @id @default(cuid())
+  procedureId String
+  description String
+  amount      Float
+  currency    String @default("LKR")
+  isOptional  Boolean @default(false)
+
+  // Relations
+  procedure Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+
+  @@map("fees")
+}
+
+model Office {
+  id           String @id @default(cuid())
+  name         String
+  nameSi       String
+  nameTa       String
+  address      String
+  district     String
+  province     String
+  contactNumbers String[]
+  email        String?
+  website      String?
+  workingHours String
+  latitude     Float?
+  longitude    Float?
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  procedures ProcedureOffice[]
+
+  @@map("offices")
+}
+
+model ProcedureOffice {
+  procedureId String
+  officeId    String
+  isMain      Boolean @default(false)
+
+  // Relations
+  procedure Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+  office    Office    @relation(fields: [officeId], references: [id], onDelete: Cascade)
+
+  @@id([procedureId, officeId])
+  @@map("procedure_offices")
+}
+
+model SearchHistory {
+  id          String            @id @default(cuid())
+  userId      String?
+  query       String
+  category    ProcedureCategory?
+  language    Language          @default(EN)
+  resultsCount Int              @default(0)
+  clickedResult String?
+  timestamp   DateTime          @default(now())
+
+  // Relations
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  procedure Procedure? @relation(fields: [clickedResult], references: [id])
+
+  @@map("search_history")
+}
+
+model SystemConfig {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+// Enums
+enum UserRole {
+  CITIZEN
+  ADMIN
+  CONTENT_MANAGER
+  SUPER_ADMIN
+}
+
+enum ProcedureCategory {
+  IDENTITY_DOCUMENTS
+  BIRTH_CERTIFICATES
+  PASSPORTS
+  EDUCATION
+  BUSINESS
+  PROPERTY
+  VEHICLE
+  HEALTH
+  SOCIAL_SERVICES
+  OTHER
+}
+
+enum ProcedureStatus {
+  ACTIVE
+  DEPRECATED
+  DRAFT
+  UNDER_REVIEW
+}
+
+enum Language {
+  EN
+  SI
+  TA
+}
