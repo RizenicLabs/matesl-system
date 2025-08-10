@@ -5,17 +5,20 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@matesl/shared": "*",
+    "@fastify/cors": "^11.0.1",
+    "@huggingface/inference": "^4.6.1",
     "@matesl/database": "*",
+    "@matesl/shared": "*",
     "fastify": "^5.4.0",
     "openai": "^4.104.0",
-    "@huggingface/inference": "^4.6.1",
     "axios": "^1.11.0",
     "redis": "^4.7.1",
     "ioredis": "^5.6.1",
