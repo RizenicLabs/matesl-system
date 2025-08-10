@@ -16,8 +16,15 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
+      "@admin/*": ["packages/admin/src/*"],
+      "@ai/*": ["packages/ai-service/src/*"],
+      "@api/*": ["packages/api/src/*"],
+      "@auth/*": ["packages/auth/src/*"],
+      "@database/*": ["packages/database/src/*"],
+      "@mobile/*": ["packages/mobile/src/*"],
+      "@procedures/*": ["packages/procedures/src/*"],
       "@shared/*": ["packages/shared/src/*"],
-      "@api/*": ["packages/api/src/*"]
+      "@web/*": ["packages/web/src/*"]
     }
   },
   "include": ["packages/**/*.ts", "packages/**/*.tsx"],

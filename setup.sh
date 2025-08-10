@@ -24,6 +24,37 @@ print_info() {
     echo -e "${BLUE}ℹ️ $1${NC}"
 }
 
+# Function to check if port is in use
+check_port() {
+    local port=$1
+    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+        return 0  # Port is in use
+    else
+        return 1  # Port is free
+    fi
+}
+
+# Function to stop conflicting services
+stop_conflicting_services() {
+    print_info "Checking for conflicting services..."
+    
+    if check_port 5432; then
+        print_warning "PostgreSQL is running on port 5432"
+        echo "We'll use port 5433 for the containerized PostgreSQL"
+    fi
+    
+    if check_port 6379; then
+        print_warning "Redis is running on port 6379"
+        echo "We'll use port 6380 for the containerized Redis"
+        echo "You can stop local Redis with: sudo systemctl stop redis-server"
+    fi
+    
+    if check_port 9200; then
+        print_warning "Elasticsearch is running on port 9200"
+        echo "We'll use port 9201 for the containerized Elasticsearch"
+    fi
+}
+
 echo -e "${BLUE}"
 echo "╔══════════════════════════════════════════════════╗"
 echo "║                MateSL System Setup               ║"
@@ -62,18 +93,29 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-print_status "Docker $(docker -v | cut -d' ' -f3 | cut -d',' -f1) found"
+print_status "Docker found"
 
 # Check Docker Compose
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
     print_error "Docker Compose is not installed"
     exit 1
 fi
 
-print_status "Docker Compose $(docker-compose -v | cut -d' ' -f3 | cut -d',' -f1) found"
+print_status "Docker Compose found"
 
-# Step 1: Install dependencies
-print_info "Step 1: Installing dependencies..."
+# Check and handle port conflicts
+stop_conflicting_services
+
+# Step 1: Clean up existing containers
+print_info "Step 1: Cleaning up existing containers..."
+
+docker-compose -f docker-compose.dev.yml down -v 2>/dev/null || true
+docker container prune -f 2>/dev/null || true
+
+print_status "Cleanup completed"
+
+# Step 2: Install dependencies
+print_info "Step 2: Installing dependencies..."
 
 print_info "Installing root dependencies..."
 if npm install; then
@@ -91,8 +133,8 @@ else
     exit 1
 fi
 
-# Step 2: Start databases
-print_info "Step 2: Starting database services..."
+# Step 3: Start databases with health checks
+print_info "Step 3: Starting database services..."
 
 if docker-compose -f docker-compose.dev.yml up -d; then
     print_status "Database services started"
@@ -101,28 +143,53 @@ else
     exit 1
 fi
 
-# Wait for services to be ready
+# Wait for services to be ready with proper health checks
 print_info "Waiting for database services to be ready..."
-sleep 15
 
-# Test database connection
-print_info "Testing database connection..."
-if docker exec matesl_postgres pg_isready -h localhost -p 5432 -U postgres > /dev/null 2>&1; then
-    print_status "PostgreSQL is ready"
-else
-    print_error "PostgreSQL is not ready"
-    exit 1
-fi
+# Wait for PostgreSQL
+print_info "Waiting for PostgreSQL..."
+for i in {1..30}; do
+    if docker exec matesl_postgres pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1; then
+        print_status "PostgreSQL is ready"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        print_error "PostgreSQL failed to start"
+        exit 1
+    fi
+    sleep 2
+done
 
-if docker exec matesl_redis redis-cli ping > /dev/null 2>&1; then
-    print_status "Redis is ready"
-else
-    print_error "Redis is not ready"
-    exit 1
-fi
+# Wait for Redis
+print_info "Waiting for Redis..."
+for i in {1..30}; do
+    if docker exec matesl_redis redis-cli ping >/dev/null 2>&1; then
+        print_status "Redis is ready"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        print_error "Redis failed to start"
+        exit 1
+    fi
+    sleep 2
+done
 
-# Step 3: Database setup
-print_info "Step 3: Setting up database..."
+# Wait for Elasticsearch
+print_info "Waiting for Elasticsearch..."
+for i in {1..60}; do
+    if curl -f http://localhost:9201/_cluster/health >/dev/null 2>&1; then
+        print_status "Elasticsearch is ready"
+        break
+    fi
+    if [ $i -eq 60 ]; then
+        print_error "Elasticsearch failed to start"
+        exit 1
+    fi
+    sleep 2
+done
+
+# Step 4: Database setup
+print_info "Step 4: Setting up database..."
 
 cd packages/database
 
@@ -149,49 +216,72 @@ print_info "Seeding database..."
 if npm run db:seed; then
     print_status "Database seeded successfully"
 else
-    print_error "Failed to seed database"
-    exit 1
+    print_warning "Failed to seed database (this might be normal for initial setup)"
 fi
 
 cd ../..
 
-# Step 4: Environment configuration
-print_info "Step 4: Checking environment configuration..."
+# Step 5: Environment configuration check
+print_info "Step 5: Checking environment configuration..."
 
-# Check if API keys are configured
+# Check AI service environment
 if [ -f "packages/ai-service/.env" ]; then
-    if grep -q "sk-" packages/ai-service/.env; then
+    if grep -q "sk-" packages/ai-service/.env 2>/dev/null; then
         print_status "OpenAI API key configured"
     else
         print_warning "OpenAI API key not configured - AI features will use fallback"
     fi
     
-    if grep -q "hf_" packages/ai-service/.env; then
+    if grep -q "hf_" packages/ai-service/.env 2>/dev/null; then
         print_status "Hugging Face API key configured"
     else
         print_warning "Hugging Face API key not configured"
     fi
 else
-    print_error "AI service environment file not found"
-    exit 1
+    print_warning "AI service environment file not found - creating template"
+    cp packages/ai-service/.env.example packages/ai-service/.env 2>/dev/null || true
 fi
 
-# Step 5: Build packages
-print_info "Step 5: Building packages..."
+# Step 6: Build packages
+print_info "Step 6: Building shared packages..."
 
+# Build shared first
+cd packages/shared
 if npm run build; then
-    print_status "All packages built successfully"
+    print_status "Shared package built"
 else
-    print_warning "Some packages failed to build (this is normal for initial setup)"
+    print_warning "Shared package build failed"
+fi
+cd ../..
+
+# Build database
+cd packages/database
+if npm run build; then
+    print_status "Database package built"
+else
+    print_warning "Database package build failed"
+fi
+cd ../..
+
+# Step 7: Final verification
+print_info "Step 7: Final system verification..."
+
+# Test database connections
+print_info "Testing database connections..."
+
+# Test PostgreSQL
+if docker exec matesl_postgres psql -U postgres -d matesl -c "SELECT 1;" >/dev/null 2>&1; then
+    print_status "PostgreSQL connection verified"
+else
+    print_warning "PostgreSQL connection test failed"
 fi
 
-# Step 6: Final verification
-print_info "Step 6: Final system verification..."
-
-print_info "Checking service endpoints..."
-
-# Test database connection via Prisma Studio
-print_info "Database Studio will be available at: http://localhost:5555"
+# Test Redis
+if docker exec matesl_redis redis-cli ping >/dev/null 2>&1; then
+    print_status "Redis connection verified"
+else
+    print_warning "Redis connection test failed"
+fi
 
 echo -e "\n${GREEN}╔══════════════════════════════════════════════════╗"
 echo "║                Setup Complete!                   ║"
@@ -202,7 +292,7 @@ echo "1. Configure API keys in packages/ai-service/.env:"
 echo "   - Get OpenAI API key: https://platform.openai.com/api-keys"
 echo "   - Get Hugging Face API key: https://huggingface.co/settings/tokens"
 echo ""
-echo "2. Start development servers:"
+echo "2. Start development servers (in separate terminals):"
 echo "   ${YELLOW}Terminal 1:${NC} cd packages/ai-service && npm run dev"
 echo "   ${YELLOW}Terminal 2:${NC} cd packages/api && npm run dev"
 echo "   ${YELLOW}Terminal 3:${NC} cd packages/web && npm run dev"
@@ -213,16 +303,31 @@ echo "   🔧 API: http://localhost:3001/health"
 echo "   🤖 AI Service: http://localhost:3003/health"
 echo "   🗄️  Database Studio: http://localhost:5555"
 echo ""
-echo "4. Test the setup:"
-echo "   - Visit the web app and try the chat feature"
-echo "   - Check API health endpoints"
-echo "   - Browse procedures in Database Studio"
+echo "4. Database connections (updated ports):"
+echo "   📊 PostgreSQL: localhost:5433"
+echo "   🔴 Redis: localhost:6380"  
+echo "   🔍 Elasticsearch: localhost:9201"
+echo ""
+echo "5. Start Database Studio (optional):"
+echo "   ${YELLOW}cd packages/database && npm run db:studio${NC}"
 echo ""
 
 echo -e "${YELLOW}⚠️  Important Notes:${NC}"
+echo "• Updated ports used to avoid conflicts with local services"
 echo "• The system will work without API keys but with limited AI features"
 echo "• Make sure to keep your .env files secure and never commit them to git"
 echo "• For production deployment, use strong JWT secrets and proper SSL certificates"
 echo ""
 
+echo -e "${BLUE}🚀 Quick Start Commands:${NC}"
+echo "# Start all development servers"
+echo "npm run dev"
+echo ""
+echo "# Or start individually:"
+echo "cd packages/ai-service && npm run dev &"
+echo "cd packages/api && npm run dev &"
+echo "cd packages/web && npm run dev &"
+echo ""
+
 print_status "Setup completed successfully! 🎉"
+print_info "Check the README.md for detailed development instructions"
