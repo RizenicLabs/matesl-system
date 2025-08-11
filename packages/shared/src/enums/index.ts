@@ -1,45 +1,51 @@
 export enum UserRole {
-  CITIZEN = 'citizen',
-  ADMIN = 'admin',
-  CONTENT_MANAGER = 'content_manager',
-  SUPER_ADMIN = 'super_admin'
+  CITIZEN = 'CITIZEN',
+  ADMIN = 'ADMIN',
+  CONTENT_MANAGER = 'CONTENT_MANAGER',
+  SUPER_ADMIN = 'SUPER_ADMIN',
 }
 
 export enum ProcedureCategory {
-  IDENTITY_DOCUMENTS = 'identity_documents',
-  BIRTH_CERTIFICATES = 'birth_certificates',
-  PASSPORTS = 'passports',
-  EDUCATION = 'education',
-  BUSINESS = 'business',
-  PROPERTY = 'property',
-  VEHICLE = 'vehicle',
-  HEALTH = 'health',
-  SOCIAL_SERVICES = 'social_services',
-  OTHER = 'other'
+  IDENTITY_DOCUMENTS = 'IDENTITY_DOCUMENTS',
+  BIRTH_CERTIFICATES = 'BIRTH_CERTIFICATES',
+  PASSPORTS = 'PASSPORTS',
+  EDUCATION = 'EDUCATION',
+  BUSINESS = 'BUSINESS',
+  PROPERTY = 'PROPERTY',
+  VEHICLE = 'VEHICLE',
+  HEALTH = 'HEALTH',
+  SOCIAL_SERVICES = 'SOCIAL_SERVICES',
+  OTHER = 'OTHER',
 }
 
 export enum ProcedureStatus {
-  ACTIVE = 'active',
-  DEPRECATED = 'deprecated',
-  DRAFT = 'draft',
-  UNDER_REVIEW = 'under_review'
+  ACTIVE = 'ACTIVE',
+  DEPRECATED = 'DEPRECATED',
+  DRAFT = 'DRAFT',
+  UNDER_REVIEW = 'UNDER_REVIEW',
+}
+
+export enum ProcedureDifficulty {
+  EASY = 'EASY',
+  MEDIUM = 'MEDIUM',
+  HARD = 'HARD',
 }
 
 export enum Language {
-  EN = 'en',
-  SI = 'si',
-  TA = 'ta'
+  EN = 'EN',
+  SI = 'SI',
+  TA = 'TA',
 }
 
 export enum MessageType {
-  USER = 'user',
-  AI = 'ai',
-  SYSTEM = 'system'
+  USER = 'USER',
+  AI = 'AI',
+  SYSTEM = 'SYSTEM',
 }
 
 export enum NotificationType {
-  SUCCESS = 'success',
-  ERROR = 'error',
-  WARNING = 'warning',
-  INFO = 'info'
+  SUCCESS = 'SUCCESS',
+  ERROR = 'ERROR',
+  WARNING = 'WARNING',
+  INFO = 'INFO',
 }

@@ -5,13 +5,24 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-});
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log:
+      process.env.NODE_ENV === 'development'
+        ? ['query', 'error', 'warn']
+        : ['error'],
+  });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export class DatabaseService {
+  private client: PrismaClient;
+
+  constructor() {
+    this.client = prisma;
+  }
+
   static async connect() {
     try {
       await prisma.$connect();
@@ -41,6 +52,10 @@ export class DatabaseService {
     } catch (error) {
       return createErrorResponse('Database health check failed');
     }
+  }
+
+  getClient() {
+    return this.client;
   }
 }
 

@@ -80,6 +80,9 @@ model Procedure {
   version     Int             @default(1)
   lastUpdated DateTime        @updatedAt
   createdAt   DateTime        @default(now())
+  
+  estimatedDuration String?
+  difficulty        ProcedureDifficulty @default(EASY)
 
   // SEO and search
   slug        String  @unique
@@ -251,6 +254,12 @@ enum ProcedureStatus {
   DEPRECATED
   DRAFT
   UNDER_REVIEW
+}
+
+enum ProcedureDifficulty {
+  EASY
+  MEDIUM
+  HARD
 }
 
 enum Language {
