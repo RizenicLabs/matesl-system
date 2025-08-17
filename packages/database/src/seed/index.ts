@@ -3,11 +3,70 @@ import {
   Procedure,
   ProcedureCategory,
   ProcedureStatus,
+  ProcedureDifficulty,
   UserRole,
+  Language,
 } from '../generated/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+// Type definitions for seed data
+interface SeedProcedureStep {
+  order: number;
+  instruction: string;
+  instructionSi: string;
+  instructionTa: string;
+  estimatedTime?: string;
+  tips: string[];
+  requiredDocs: string[];
+}
+
+interface SeedRequirement {
+  name: string;
+  nameSi: string;
+  nameTa: string;
+  description?: string;
+  isRequired: boolean;
+  order: number;
+}
+
+interface SeedFee {
+  description: string;
+  amount: number;
+  currency: string;
+  isOptional: boolean;
+}
+
+interface SeedProcedure {
+  title: string;
+  titleSi: string;
+  titleTa: string;
+  slug: string;
+  category: ProcedureCategory;
+  status: ProcedureStatus;
+  keywords: string[];
+  searchTags: string[];
+  estimatedDuration?: string;
+  difficulty: ProcedureDifficulty;
+  description?: string;
+  steps: SeedProcedureStep[];
+  requirements: SeedRequirement[];
+  fees: SeedFee[];
+}
+
+interface SeedFAQ {
+  question: string;
+  questionSi: string;
+  questionTa: string;
+  answer: string;
+  answerSi: string;
+  answerTa: string;
+  category: ProcedureCategory;
+  keywords: string[];
+  searchTags: string[];
+  isActive: boolean;
+}
 
 async function main() {
   console.log('🌱 Starting database seed...');
@@ -28,6 +87,22 @@ async function main() {
     });
 
     console.log('👤 Admin user created:', admin.email);
+
+    // Create content manager user
+    const contentManagerPassword = await bcrypt.hash('content123', 10);
+    const contentManager = await prisma.user.upsert({
+      where: { email: 'content@gov.lk' },
+      update: {},
+      create: {
+        email: 'content@gov.lk',
+        name: 'Content Manager',
+        password: contentManagerPassword,
+        role: UserRole.CONTENT_MANAGER,
+        emailVerified: true,
+      },
+    });
+
+    console.log('👤 Content manager created:', contentManager.email);
 
     // Create government offices
     const offices = await Promise.all([
@@ -79,17 +154,51 @@ async function main() {
           longitude: 79.8774,
         },
       }),
+      prisma.office.create({
+        data: {
+          name: 'District Secretariat - Kandy',
+          nameSi: 'දිස්ත්‍රික් ලේකම් කාර්යාලය - මහනුවර',
+          nameTa: 'மாவட்ட செயலகம் - கண்டி',
+          address: 'District Secretariat, Kandy',
+          district: 'Kandy',
+          province: 'Central',
+          contactNumbers: ['+94812222771', '+94812222772'],
+          email: 'info@kandy.dist.gov.lk',
+          website: 'http://www.kandy.dist.gov.lk',
+          workingHours: 'Monday to Friday: 8:30 AM - 4:15 PM',
+          latitude: 7.2906,
+          longitude: 80.6337,
+        },
+      }),
+      prisma.office.create({
+        data: {
+          name: 'Registrar of Companies',
+          nameSi: 'සමාගම් ලේඛකාධිකාරී',
+          nameTa: 'நிறுவனங்களின் பதிவாளர்',
+          address: 'No. 5, Baladaksha Mawatha, Colombo 03',
+          district: 'Colombo',
+          province: 'Western',
+          contactNumbers: ['+94112136873', '+94112136874'],
+          email: 'info@roc.gov.lk',
+          website: 'http://www.roc.gov.lk',
+          workingHours: 'Monday to Friday: 8:30 AM - 4:15 PM',
+          latitude: 6.927,
+          longitude: 79.8612,
+        },
+      }),
     ]);
 
     console.log('🏢 Government offices created');
 
     // Create sample procedures with comprehensive data
-    const procedures: Procedure[] = [
+    const procedures: SeedProcedure[] = [
       {
         title: 'Apply for New National Identity Card',
         titleSi: 'නව ජාතික හැඳුනුම්පත සඳහා අයදුම් කිරීම',
         titleTa: 'புதிய தேசிய அடையாள அட்டைக்கு விண்ணப்பிக்கவும்',
         slug: 'apply-new-national-identity-card',
+        description:
+          'Complete guide to apply for a new National Identity Card for Sri Lankan citizens',
         category: ProcedureCategory.IDENTITY_DOCUMENTS,
         status: ProcedureStatus.ACTIVE,
         keywords: [
@@ -101,7 +210,7 @@ async function main() {
         ],
         searchTags: ['nic', 'identity', 'card', 'national', 'id'],
         estimatedDuration: '7-14 days',
-        difficulty: 'EASY',
+        difficulty: ProcedureDifficulty.EASY,
         steps: [
           {
             order: 1,
@@ -137,6 +246,7 @@ async function main() {
               'Write clearly and legibly',
               'Double-check all information',
             ],
+            requiredDocs: [],
           },
           {
             order: 3,
@@ -152,18 +262,20 @@ async function main() {
               'Note down reference number',
               'Ask for expected completion date',
             ],
+            requiredDocs: [],
           },
           {
             order: 4,
             instruction: 'Collect your new NIC after the processing period',
             instructionSi: 'සැකසුම් කාලයෙන් පසු ඔබේ නව ජා.හැ.කා එකතු කරගන්න',
             instructionTa:
-              'செயலாக்க காலத்திற்குப் பிறகு உங்கள் புதிய NIC ஐ சேகரிக்கவும்',
+              'செயலாக்க காலத்திற்குப் பிறகு உங்கள் புதிய NIC ஐ சேकரிக்கவும்',
             estimatedTime: '10 minutes',
             tips: [
               'Bring receipt and old ID if available',
               'Verify all details on new NIC',
             ],
+            requiredDocs: [],
           },
         ],
         requirements: [
@@ -216,6 +328,8 @@ async function main() {
         titleSi: 'ශ්‍රී ලංකන් ගමන් බලපත්‍රය සඳහා අයදුම් කිරීම',
         titleTa: 'இலங்கை கடவுச்சீட்டிற்கு விண்ணப்பிக்கவும்',
         slug: 'apply-sri-lankan-passport',
+        description:
+          'Complete guide to apply for a Sri Lankan passport for travel abroad',
         category: ProcedureCategory.PASSPORTS,
         status: ProcedureStatus.ACTIVE,
         keywords: [
@@ -227,7 +341,7 @@ async function main() {
         ],
         searchTags: ['passport', 'travel', 'document', 'visa', 'immigration'],
         estimatedDuration: '3-45 days',
-        difficulty: 'MEDIUM',
+        difficulty: ProcedureDifficulty.MEDIUM,
         steps: [
           {
             order: 1,
@@ -242,6 +356,7 @@ async function main() {
               'Use good internet connection',
               'Create account first',
             ],
+            requiredDocs: [],
           },
           {
             order: 2,
@@ -256,6 +371,7 @@ async function main() {
               'Use secure payment methods',
               'Check bank charges',
             ],
+            requiredDocs: [],
           },
           {
             order: 3,
@@ -288,6 +404,7 @@ async function main() {
               'Verify all details',
               'Sign passport immediately',
             ],
+            requiredDocs: [],
           },
         ],
         requirements: [
@@ -352,6 +469,8 @@ async function main() {
         titleSi: 'ව්‍යාපාර ලියාපදිංචි සහතිකය',
         titleTa: 'வணிக பதிவு சான்றிதழ்',
         slug: 'business-registration-certificate',
+        description:
+          'Step-by-step guide to register a new business in Sri Lanka',
         category: ProcedureCategory.BUSINESS,
         status: ProcedureStatus.ACTIVE,
         keywords: [
@@ -363,7 +482,7 @@ async function main() {
         ],
         searchTags: ['business', 'registration', 'company', 'license', 'trade'],
         estimatedDuration: '3-7 days',
-        difficulty: 'MEDIUM',
+        difficulty: ProcedureDifficulty.MEDIUM,
         steps: [
           {
             order: 1,
@@ -377,6 +496,7 @@ async function main() {
               'Check name availability first',
               'Have 3 alternative names ready',
             ],
+            requiredDocs: [],
           },
           {
             order: 2,
@@ -385,6 +505,25 @@ async function main() {
             instructionTa: 'தேவையான ஆவணங்களை தயாரித்து சமர்ப்பிக்கவும்',
             estimatedTime: '60-90 minutes',
             requiredDocs: ['Application form', 'NIC copies', 'Address proof'],
+            tips: [
+              'Ensure all documents are properly certified',
+              'Keep copies for your records',
+            ],
+          },
+          {
+            order: 3,
+            instruction:
+              'Visit ROC office for document submission and verification',
+            instructionSi:
+              'ලියකියවිලි ඉදිරිපත් කිරීම සහ සත්‍යාපනය සඳහා ROC කාර්යාලයට පිවිසෙන්න',
+            instructionTa:
+              'ஆவண சமர்ப்பிப்பு மற்றும் சரிபார்ப்பிற்காக ROC அலுவலகத்திற்கு செல்லவும்',
+            estimatedTime: '45-60 minutes',
+            requiredDocs: [],
+            tips: [
+              'Arrive early to avoid queues',
+              'Bring all original documents',
+            ],
           },
         ],
         requirements: [
@@ -404,6 +543,14 @@ async function main() {
             isRequired: true,
             order: 2,
           },
+          {
+            name: 'Proof of Business Address',
+            nameSi: 'ව්‍යාපාරික ලිපිනයේ සාක්ෂිය',
+            nameTa: 'வணிக முகவரி ஆதாரம்',
+            description: 'Lease agreement or property ownership documents',
+            isRequired: true,
+            order: 3,
+          },
         ],
         fees: [
           {
@@ -420,14 +567,113 @@ async function main() {
           },
         ],
       },
+      {
+        title: 'Obtain Birth Certificate',
+        titleSi: 'උප්පැන්න සහතිකය ලබා ගැනීම',
+        titleTa: 'பிறப்பு சான்றிதழ் பெறுதல்',
+        slug: 'obtain-birth-certificate',
+        description:
+          'Guide to obtain a certified copy of birth certificate from Registrar General',
+        category: ProcedureCategory.BIRTH_CERTIFICATES,
+        status: ProcedureStatus.ACTIVE,
+        keywords: [
+          'birth certificate',
+          'certified copy',
+          'registrar general',
+          'vital records',
+        ],
+        searchTags: ['birth', 'certificate', 'copy', 'registrar', 'vital'],
+        estimatedDuration: '3-7 days',
+        difficulty: ProcedureDifficulty.EASY,
+        steps: [
+          {
+            order: 1,
+            instruction:
+              'Visit Registrar General Department or authorized office',
+            instructionSi:
+              'ලේඛකාධිකාරී ජනරාල් දෙපාර්තමේන්තුව හෝ බලයලත් කාර්යාලයට පිවිසෙන්න',
+            instructionTa:
+              'பதிவாளர் ஜெனரல் திணைக்களம் அல்லது அங்கீகரிக்கப்பட்ட அலுவலகத்திற்கு செல்லவும்',
+            estimatedTime: '30 minutes',
+            requiredDocs: [
+              'Application form',
+              'ID proof',
+              'Relationship proof',
+            ],
+            tips: [
+              'Call ahead to confirm office hours',
+              'Bring exact change for fees',
+            ],
+          },
+          {
+            order: 2,
+            instruction: 'Fill application form with accurate details',
+            instructionSi: 'නිවැරදි විස්තර සහිත අයදුම්පත පුරවන්න',
+            instructionTa: 'சரியான விவரங்களுடன் விண்ணப்ப படிவத்தை நிரப்பவும்',
+            estimatedTime: '10-15 minutes',
+            requiredDocs: [],
+            tips: [
+              'Provide accurate birth details',
+              'Include parent names correctly',
+            ],
+          },
+          {
+            order: 3,
+            instruction: 'Submit application and collect receipt',
+            instructionSi: 'අයදුම්පත ඉදිරිපත් කර රිසිට්පත එකතු කරගන්න',
+            instructionTa: 'விண்ணப்பத்தை சமர்ப்பித்து ரசீதை சேகரிக்கவும்',
+            estimatedTime: '10 minutes',
+            requiredDocs: [],
+            tips: ['Keep receipt safely', 'Note collection date'],
+          },
+        ],
+        requirements: [
+          {
+            name: 'Application Form',
+            nameSi: 'අයදුම්පත',
+            nameTa: 'விண்ணப்ப படிவம்',
+            description: 'Completed application form for birth certificate',
+            isRequired: true,
+            order: 1,
+          },
+          {
+            name: 'Applicant ID Proof',
+            nameSi: 'අයදුම්කරුගේ හැඳුනුම්පත',
+            nameTa: 'விண்ணப்பதாரர் அடையாள ஆதாரம்',
+            description: 'Valid NIC or passport of applicant',
+            isRequired: true,
+            order: 2,
+          },
+          {
+            name: 'Relationship Proof',
+            nameSi: 'නෑකම් සාක්ෂිය',
+            nameTa: 'உறவு ஆதாரம்',
+            description:
+              'Document proving relationship to the person (if not self)',
+            isRequired: false,
+            order: 3,
+          },
+        ],
+        fees: [
+          {
+            description: 'Certified Copy Fee',
+            amount: 50,
+            currency: 'LKR',
+            isOptional: false,
+          },
+        ],
+      },
     ];
 
     // Create procedures with all related data
     for (const procedureData of procedures) {
-      const { steps, requirements, fees, ...procedure } = procedureData;
+      const { steps, requirements, fees, ...procedureBase } = procedureData;
 
       const createdProcedure = await prisma.procedure.create({
-        data: procedure,
+        data: {
+          ...procedureBase,
+          version: 1,
+        },
       });
 
       // Create steps
@@ -467,12 +713,22 @@ async function main() {
       );
 
       // Link with appropriate offices
-      const officeIndex =
-        procedure.category === ProcedureCategory.PASSPORTS
-          ? 1
-          : procedure.category === ProcedureCategory.BUSINESS
-            ? 2
-            : 0;
+      let officeIndex = 0;
+      switch (procedureData.category) {
+        case ProcedureCategory.PASSPORTS:
+          officeIndex = 1; // Immigration Department
+          break;
+        case ProcedureCategory.BUSINESS:
+          officeIndex = 4; // Registrar of Companies
+          break;
+        case ProcedureCategory.BIRTH_CERTIFICATES:
+          officeIndex = 0; // Registrar General's Department
+          break;
+        case ProcedureCategory.IDENTITY_DOCUMENTS:
+        default:
+          officeIndex = 0; // Registrar General's Department
+          break;
+      }
 
       await prisma.procedureOffice.create({
         data: {
@@ -482,7 +738,7 @@ async function main() {
         },
       });
 
-      console.log(`📄 Procedure created: ${procedure.title}`);
+      console.log(`📄 Procedure created: ${procedureData.title}`);
     }
 
     // Create system configuration
@@ -495,18 +751,54 @@ async function main() {
           maxTokens: 200,
           temperature: 0.7,
           confidenceThreshold: 0.6,
-          supportedLanguages: ['en', 'si', 'ta'],
+          supportedLanguages: ['EN', 'SI', 'TA'],
           fallbackResponses: {
-            en: "I'm sorry, I don't have enough information about that procedure. Please contact the relevant government office for assistance.",
-            si: 'සමාවෙන්න, මට එම ක්‍රියාමාර්ගය පිළිබඳ ප්‍රමාණවත් තොරතුරු නැත. කරුණාකර සහාය සඳහා අදාළ රජයේ කාර්යාලයට සම්බන්ධ වන්න.',
-            ta: 'மன்னிக்கவும், அந்த நடைமுறை பற்றிய போதுமான தகவல் என்னிடம் இல்லை. உதவிக்காக தொடர்புடைய அரசு அலுவலகத்தை தொடர்பு கொள்ளவும்.',
+            EN: "I'm sorry, I don't have enough information about that procedure. Please contact the relevant government office for assistance.",
+            SI: 'සමාවෙන්න, මට එම ක්‍රියාමාර්ගය පිළිබඳ ප්‍රමාණවත් තොරතුරු නැත. කරුණාකර සහාය සඳහා අදාළ රජයේ කාර්යාලයට සම්බන්ධ වන්න.',
+            TA: 'மன்னிக்கவும், அந்த நடைமுறை பற்றிய போதுமான தகவல் என்னிடம் இல்லை. உதவிக்காக தொடர்புடைய அரசு அலுவலகத்தை தொடர்பு கொள்ளவும்.',
           },
         },
       },
     });
 
+    // Create additional system configurations
+    await prisma.systemConfig.upsert({
+      where: { key: 'maintenance_mode' },
+      update: {},
+      create: {
+        key: 'maintenance_mode',
+        value: {
+          enabled: false,
+          message: {
+            EN: 'System is under maintenance. Please try again later.',
+            SI: 'පද්ධතිය නඩත්තු කිරීම යටතේ. කරුණාකර පසුව නැවත උත්සාහ කරන්න.',
+            TA: 'கணினி பராமரிப்பில் உள்ளது. தயவுசெய்து பின்னர் மீண்டும் முயற்சிக்கவும்.',
+          },
+          startTime: null,
+          endTime: null,
+        },
+      },
+    });
+
+    await prisma.systemConfig.upsert({
+      where: { key: 'featured_procedures' },
+      update: {},
+      create: {
+        key: 'featured_procedures',
+        value: {
+          procedures: [
+            'apply-new-national-identity-card',
+            'apply-sri-lankan-passport',
+            'business-registration-certificate',
+            'obtain-birth-certificate',
+          ],
+          maxCount: 6,
+        },
+      },
+    });
+
     // Create FAQ entries
-    const faqs = [
+    const faqs: SeedFAQ[] = [
       {
         question: 'How long does it take to get a new NIC?',
         questionSi: 'නව ජා.හැ.කා ලබා ගැනීමට කොපමණ කාලයක් ගත වේද?',
@@ -517,7 +809,9 @@ async function main() {
           'සාමාන්‍යයෙන් අයදුම්පත ඉදිරිපත් කළ දිනයේ සිට වැඩ කරන දින 7-14කි.',
         answerTa:
           'பொதுவாக விண்ணப்பம் சமர்ப்பித்த நாளிலிருந்து 7-14 வேலை நாட்கள்.',
-        category: 'IDENTITY_DOCUMENTS',
+        category: ProcedureCategory.IDENTITY_DOCUMENTS,
+        keywords: ['NIC', 'processing time', 'duration', 'how long'],
+        searchTags: ['nic', 'time', 'duration', 'processing'],
         isActive: true,
       },
       {
@@ -530,7 +824,55 @@ async function main() {
           'සාමාන්‍ය සැකසුම් (දින 45): රු. 3,500. වේගවත් (දින 7): රු. 7,000. ප්‍රකාශිත (දින 3): රු. 10,000.',
         answerTa:
           'சாதாரண செயலாக்கம் (45 நாட்கள்): ரூ. 3,500. வேகமான (7 நாட்கள்): ரூ. 7,000. விரைவு (3 நாட்கள்): ரூ. 10,000.',
-        category: 'PASSPORTS',
+        category: ProcedureCategory.PASSPORTS,
+        keywords: ['passport', 'cost', 'price', 'fees', 'charges'],
+        searchTags: ['passport', 'cost', 'price', 'fees'],
+        isActive: true,
+      },
+      {
+        question: 'Can I apply for a passport online?',
+        questionSi: 'මට මාර්ගගතව ගමන් බලපත්‍රයක් සඳහා අයදුම් කළ හැකිද?',
+        questionTa: 'நான் ஆன்லைனில் கடவுச்சீட்டிற்கு விண்ணப்பிக்க முடியுமா?',
+        answer:
+          'Yes, you can submit your passport application online through epassport.gov.lk. However, you still need to visit the passport office for biometric data collection.',
+        answerSi:
+          'ඔව්, ඔබට epassport.gov.lk හරහා ඔබේ ගමන් බලපත්‍ර අයදුම්පත මාර්ගගතව ඉදිරිපත් කළ හැකිය. කෙසේ වෙතත්, ජීවමිතික දත්ත එකතු කිරීම සඳහා ඔබට තවමත් ගමන් බලපත්‍ර කාර්යාලයට යාමට සිදුවේ.',
+        answerTa:
+          'ஆம், நீங்கள் epassport.gov.lk மூலம் உங்கள் கடவுச்சீட்டு விண்ணப்பத்தை ஆன்லைனில் சமர்ப்பிக்கலாம். இருப்பினும், உயிரியல் தரவு சேகரிப்பிற்காக நீங்கள் இன்னும் கடவுச்சீட்டு அலுவலகத்திற்கு செல்ல வேண்டும்.',
+        category: ProcedureCategory.PASSPORTS,
+        keywords: ['passport', 'online application', 'epassport', 'digital'],
+        searchTags: ['passport', 'online', 'digital', 'epassport'],
+        isActive: true,
+      },
+      {
+        question: 'What documents are required for business registration?',
+        questionSi: 'ව්‍යාපාර ලියාපදිංචිය සඳහා අවශ්‍ය ලියකියවිලි මොනවාද?',
+        questionTa: 'வணிக பதிவுக்கு என்ன ஆவணங்கள் தேவை?',
+        answer:
+          'You need completed application form (ROC 1), NIC copies of proprietor/partners, proof of business address (lease agreement or property documents), and required fees.',
+        answerSi:
+          'ඔබට සම්පුර්ණ අයදුම්පත (ROC 1), හිමිකරු/හවුල්කරුවන්ගේ ජා.හැ.කා පිටපත්, ව්‍යාපාරික ලිපිනයේ සාක්ෂිය (බදු ගිණුම හෝ දේපළ ලියකියවිලි), සහ අවශ්‍ය ගාස්තු අවශ්‍ය වේ.',
+        answerTa:
+          'உங்களுக்கு நிரப்பப்பட்ட விண்ணப்ப படிவம் (ROC 1), உரிமையாளர்/கூட்டாளர்களின் NIC நகல்கள், வணிக முகவரி ஆதாரம் (குத்தகை ஒப்பந்தம் அல்லது சொத்து ஆவணங்கள்), மற்றும் தேவையான கட்டணங்கள் தேவை.',
+        category: ProcedureCategory.BUSINESS,
+        keywords: ['business registration', 'documents', 'requirements', 'ROC'],
+        searchTags: ['business', 'documents', 'requirements', 'registration'],
+        isActive: true,
+      },
+      {
+        question: 'How can I get a certified copy of my birth certificate?',
+        questionSi: 'මගේ උප්පැන්න සහතිකයේ සහතික කළ පිටපතක් ලබා ගන්නේ කෙසේද?',
+        questionTa:
+          'எனது பிறப்பு சான்றிதழின் சான்றளிக்கப்பட்ட நகலை எப்படி பெறுவது?',
+        answer:
+          "Visit the Registrar General's Department or any authorized divisional secretariat office with your NIC, fill the application form, pay Rs. 50 fee, and collect the certified copy within 3-7 days.",
+        answerSi:
+          'ඔබේ ජා.හැ.කා සමග ලේඛකාධිකාරී ජනරාල් දෙපාර්තමේන්තුව හෝ ඕනෑම බලයලත් ප්‍රාදේශීය ලේකම් කාර්යාලයකට පිවිසෙන්න, අයදුම්පත පුරවන්න, රු. 50 ගාස්තුව ගෙවන්න, සහ දින 3-7 ක් ඇතුළත සහතික කළ පිටපත එකතු කරගන්න.',
+        answerTa:
+          'உங்கள் NIC உடன் பதிவாளர் ஜெனரலின் திணைக்களம் அல்லது அங்கீకரிக்கப்பட்ட பிரதேச செயலகத்திற்கு செல்லவும், விண்ணப்ப படிவத்தை நிரப்பவும், ரூ. 50 கட்டணம் செலுத்தவும், மற்றும் 3-7 நாட்களுக்குள் சான்றளிக்கப்பட்ட நகலை சேகரிக்கவும்.',
+        category: ProcedureCategory.BIRTH_CERTIFICATES,
+        keywords: ['birth certificate', 'certified copy', 'registrar general'],
+        searchTags: ['birth', 'certificate', 'copy', 'certified'],
         isActive: true,
       },
     ];
@@ -539,9 +881,108 @@ async function main() {
       await prisma.fAQ.create({ data: faq });
     }
 
+    // Create some sample search history entries
+    const sampleSearches = [
+      {
+        query: 'how to get passport',
+        category: ProcedureCategory.PASSPORTS,
+        language: Language.EN,
+        resultsCount: 3,
+      },
+      {
+        query: 'NIC application',
+        category: ProcedureCategory.IDENTITY_DOCUMENTS,
+        language: Language.EN,
+        resultsCount: 5,
+      },
+      {
+        query: 'ව්‍යාපාර ලියාපදිංචිය',
+        category: ProcedureCategory.BUSINESS,
+        language: Language.SI,
+        resultsCount: 2,
+      },
+      {
+        query: 'பிறப்பு சான்றிதழ்',
+        category: ProcedureCategory.BIRTH_CERTIFICATES,
+        language: Language.TA,
+        resultsCount: 4,
+      },
+    ];
+
+    for (const search of sampleSearches) {
+      await prisma.searchHistory.create({
+        data: search,
+      });
+    }
+
+    // Create a sample chat session with messages
+    const sampleSession = await prisma.chatSession.create({
+      data: {
+        userId: admin.id,
+        isActive: true,
+      },
+    });
+
+    const sampleMessages = [
+      {
+        sessionId: sampleSession.id,
+        message: 'How can I apply for a new NIC?',
+        response:
+          'To apply for a new National Identity Card, you need to visit your nearest Divisional Secretariat office with your birth certificate, proof of address, and passport-size photographs. The process typically takes 7-14 working days and costs Rs. 100.',
+        confidence: 0.95,
+        category: ProcedureCategory.IDENTITY_DOCUMENTS,
+        language: Language.EN,
+        intent: 'procedure_inquiry',
+        entities: {
+          procedure_type: 'NIC',
+          document_type: 'national_identity_card',
+        },
+      },
+      {
+        sessionId: sampleSession.id,
+        message: 'What documents do I need?',
+        response:
+          'For a new NIC application, you need: 1) Original birth certificate, 2) Proof of current address (utility bill or Grama Niladhari certificate), 3) Parent/Guardian NIC copies (if applicable), and 4) Two passport-size color photographs.',
+        confidence: 0.92,
+        category: ProcedureCategory.IDENTITY_DOCUMENTS,
+        language: Language.EN,
+        intent: 'requirements_inquiry',
+        entities: {
+          procedure_type: 'NIC',
+          inquiry_type: 'requirements',
+        },
+      },
+    ];
+
+    for (const message of sampleMessages) {
+      await prisma.chatMessage.create({
+        data: message,
+      });
+    }
+
     console.log('❓ FAQ entries created');
+    console.log('🔍 Sample search history created');
+    console.log('💬 Sample chat session created');
     console.log('⚙️ System configuration created');
     console.log('🎉 Database seeded successfully!');
+
+    // Display summary
+    const stats = {
+      users: await prisma.user.count(),
+      offices: await prisma.office.count(),
+      procedures: await prisma.procedure.count(),
+      faqs: await prisma.fAQ.count(),
+      chatSessions: await prisma.chatSession.count(),
+      chatMessages: await prisma.chatMessage.count(),
+    };
+
+    console.log('\n📊 Seed Summary:');
+    console.log(`   Users: ${stats.users}`);
+    console.log(`   Offices: ${stats.offices}`);
+    console.log(`   Procedures: ${stats.procedures}`);
+    console.log(`   FAQs: ${stats.faqs}`);
+    console.log(`   Chat Sessions: ${stats.chatSessions}`);
+    console.log(`   Chat Messages: ${stats.chatMessages}`);
   } catch (error) {
     console.error('❌ Seed failed:', error);
     throw error;

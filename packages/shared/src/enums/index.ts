@@ -49,3 +49,22 @@ export enum NotificationType {
   WARNING = 'WARNING',
   INFO = 'INFO',
 }
+
+export enum SearchResultType {
+  PROCEDURE = 'PROCEDURE',
+  FAQ = 'FAQ',
+  OFFICE = 'OFFICE',
+}
+
+export enum SystemConfigKey {
+  AI_MODEL_CONFIG = 'AI_MODEL_CONFIG',
+  MAINTENANCE_MODE = 'MAINTENANCE_MODE',
+  FEATURED_PROCEDURES = 'FEATURED_PROCEDURES',
+  SYSTEM_ANNOUNCEMENTS = 'SYSTEM_ANNOUNCEMENTS',
+}
+
+export enum ChatSessionStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  EXPIRED = 'EXPIRED',
+}
