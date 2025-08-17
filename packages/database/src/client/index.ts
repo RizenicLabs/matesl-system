@@ -27,7 +27,7 @@ export class DatabaseService {
     try {
       await prisma.$connect();
       console.log('✅ Database connected successfully');
-      return createSuccessResponse(null, 'Database connected');
+      return createSuccessResponse('Database connected', null);
     } catch (error) {
       console.error('❌ Database connection failed:', error);
       return createErrorResponse('Database connection failed');
@@ -38,7 +38,7 @@ export class DatabaseService {
     try {
       await prisma.$disconnect();
       console.log('✅ Database disconnected successfully');
-      return createSuccessResponse(null, 'Database disconnected');
+      return createSuccessResponse('Database disconnected', null);
     } catch (error) {
       console.error('❌ Database disconnection failed:', error);
       return createErrorResponse('Database disconnection failed');
@@ -48,7 +48,9 @@ export class DatabaseService {
   static async healthCheck() {
     try {
       await prisma.$queryRaw`SELECT 1`;
-      return createSuccessResponse({ status: 'healthy' });
+      return createSuccessResponse('Database service works!', {
+        status: 'healthy',
+      });
     } catch (error) {
       return createErrorResponse('Database health check failed');
     }

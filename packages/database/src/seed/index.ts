@@ -1,5 +1,6 @@
 import {
   PrismaClient,
+  Procedure,
   ProcedureCategory,
   ProcedureStatus,
   UserRole,
@@ -83,7 +84,7 @@ async function main() {
     console.log('🏢 Government offices created');
 
     // Create sample procedures with comprehensive data
-    const procedures = [
+    const procedures: Procedure[] = [
       {
         title: 'Apply for New National Identity Card',
         titleSi: 'නව ජාතික හැඳුනුම්පත සඳහා අයදුම් කිරීම',

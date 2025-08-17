@@ -144,7 +144,7 @@ else
 fi
 
 # Step 2.5: Build shared packages first
-print_info "Step 2.5: Building shared packages in correct order..."
+print_info "Step 2.5: Building shared package..."
 
 # Build shared package first
 print_info "Building @matesl/shared..."
