@@ -1,5 +1,5 @@
-import { Language } from '@shared/enums';
-import { ApiResponse } from '@shared/types';
+import { Language } from '../enums';
+import { ApiResponse } from '../types';
 import { format, isValid } from 'date-fns';
 
 // API Response helpers

@@ -6,13 +6,12 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev -w api\" \"npm run dev -w web\" \"npm run dev -w ai-service\"",
+    "dev": "concurrently \"npm run dev --workspace=api\" \"npm run dev --workspace=web\" \"npm run dev --workspace=ai-service\"",
     "build": "npm run build:deps && npm run build --workspaces --if-present",
-    "build:deps": "npm run build -w shared && npm run build -w database",
+    "build:deps": "npm run build --workspace=shared && npm run build --workspace=database",
     "test": "npm run test --workspaces --if-present",
     "lint": "eslint packages/**/*.{ts,tsx,js,jsx}",
-    "clean": "npm run clean --workspaces --if-present && rm -rf dist build .next",
-    "postinstall": "npm run build:deps"
+    "clean": "npm run clean --workspaces --if-present && rm -rf dist build .next packages/*/tsconfig.tsbuildinfo"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.38.0",

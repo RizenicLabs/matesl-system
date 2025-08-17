@@ -157,14 +157,6 @@ else
 fi
 cd ../..
 
-# Link workspaces to ensure proper resolution
-print_info "Linking workspace dependencies..."
-if npm run build --workspace=shared; then
-    print_status "Workspace linking completed"
-else
-    print_warning "Workspace linking had issues (continuing anyway)"
-fi
-
 # Step 3: Start databases with health checks
 print_info "Step 3: Starting database services..."
 

@@ -4,7 +4,7 @@ import {
   ProcedureDifficulty,
   ProcedureStatus,
   UserRole,
-} from '@shared/enums';
+} from '../enums';
 
 // Base types from database
 export interface User {
@@ -172,25 +172,12 @@ export interface AuthResponse {
 }
 
 // Chat types
-export interface ChatRequest {
-  message: string;
-  sessionId?: string;
-  language?: Language;
-}
-
 export interface ChatResponse extends AIResponse {
   sessionId: string;
   procedures?: Procedure[];
 }
 
 // Search types
-export interface SearchRequest {
-  query: string;
-  category?: ProcedureCategory;
-  language?: Language;
-  limit?: number;
-  offset?: number;
-}
 
 export interface SearchResult {
   procedures: Procedure[];
