@@ -712,31 +712,40 @@ async function main() {
         )
       );
 
-      // Link with appropriate offices
-      let officeIndex = 0;
+      // Link with appropriate offices (many-to-many relationships)
+      const officeRelations = [];
       switch (procedureData.category) {
         case ProcedureCategory.PASSPORTS:
-          officeIndex = 1; // Immigration Department
+          officeRelations.push({ officeIndex: 1, isMain: true }); // Immigration Department
           break;
         case ProcedureCategory.BUSINESS:
-          officeIndex = 4; // Registrar of Companies
+          officeRelations.push({ officeIndex: 4, isMain: true }); // Registrar of Companies
           break;
         case ProcedureCategory.BIRTH_CERTIFICATES:
-          officeIndex = 0; // Registrar General's Department
+          officeRelations.push(
+            { officeIndex: 0, isMain: true }, // Registrar General (main)
+            { officeIndex: 3, isMain: false } // District Secretariat (secondary)
+          );
           break;
         case ProcedureCategory.IDENTITY_DOCUMENTS:
         default:
-          officeIndex = 0; // Registrar General's Department
+          officeRelations.push(
+            { officeIndex: 0, isMain: true }, // Registrar General (main)
+            { officeIndex: 3, isMain: false } // District Secretariat (secondary)
+          );
           break;
       }
 
-      await prisma.procedureOffice.create({
-        data: {
-          procedureId: createdProcedure.id,
-          officeId: offices[officeIndex].id,
-          isMain: true,
-        },
-      });
+      // Create all procedure-office relationships
+      for (const relation of officeRelations) {
+        await prisma.procedureOffice.create({
+          data: {
+            procedureId: createdProcedure.id,
+            officeId: offices[relation.officeIndex].id,
+            isMain: relation.isMain,
+          },
+        });
+      }
 
       console.log(`📄 Procedure created: ${procedureData.title}`);
     }

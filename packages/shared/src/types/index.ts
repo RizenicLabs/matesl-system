@@ -20,11 +20,15 @@ export interface User {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  // Google OAuth fields
   googleId?: string;
   emailVerified: boolean;
   verifyToken?: string;
   resetToken?: string;
   resetExpiresAt?: Date;
+  // Relations
+  chatSessions?: ChatSession[];
+  searchHistory?: SearchHistory[];
 }
 
 export interface ChatSession {
@@ -33,6 +37,8 @@ export interface ChatSession {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  // Relations
+  user?: User;
   messages?: ChatMessage[];
 }
 
@@ -45,9 +51,13 @@ export interface ChatMessage {
   category: ProcedureCategory;
   language: Language;
   timestamp: Date;
+  // Metadata
   intent?: string;
   entities?: Record<string, any>;
   procedureId?: string;
+  // Relations
+  session?: ChatSession;
+  procedure?: Procedure;
 }
 
 export interface Procedure {
@@ -63,14 +73,17 @@ export interface Procedure {
   createdAt: Date;
   estimatedDuration?: string;
   difficulty: ProcedureDifficulty;
+  // SEO and search
   slug: string;
   keywords: string[];
   searchTags: string[];
-  // Relations (optional for API responses)
+  // Relations
   steps?: ProcedureStep[];
   requirements?: Requirement[];
   fees?: Fee[];
-  offices?: ProcedureOffice[];
+  procedureOffices?: ProcedureOffice[];
+  messages?: ChatMessage[];
+  searches?: SearchHistory[];
 }
 
 export interface ProcedureStep {
@@ -83,6 +96,8 @@ export interface ProcedureStep {
   estimatedTime?: string;
   tips: string[];
   requiredDocs: string[];
+  // Relations
+  procedure?: Procedure;
 }
 
 export interface Requirement {
@@ -94,6 +109,8 @@ export interface Requirement {
   description?: string;
   isRequired: boolean;
   order: number;
+  // Relations
+  procedure?: Procedure;
 }
 
 export interface Fee {
@@ -103,6 +120,8 @@ export interface Fee {
   amount: number;
   currency: string;
   isOptional: boolean;
+  // Relations
+  procedure?: Procedure;
 }
 
 export interface Office {
@@ -122,12 +141,15 @@ export interface Office {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  // Relations
+  procedureOffices?: ProcedureOffice[];
 }
 
 export interface ProcedureOffice {
   procedureId: string;
   officeId: string;
   isMain: boolean;
+  // Relations
   procedure?: Procedure;
   office?: Office;
 }
@@ -141,6 +163,9 @@ export interface SearchHistory {
   resultsCount: number;
   clickedResult?: string;
   timestamp: Date;
+  // Relations
+  user?: User;
+  procedure?: Procedure;
 }
 
 export interface SystemConfig {

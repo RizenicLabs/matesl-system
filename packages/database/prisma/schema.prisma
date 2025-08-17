@@ -90,26 +90,26 @@ model Procedure {
   searchTags  String[]
 
   // Relations
-  steps        ProcedureStep[]
-  requirements Requirement[]
-  fees         Fee[]
-  offices      ProcedureOffice[]
-  messages     ChatMessage[]
-  searches     SearchHistory[]
+  steps            ProcedureStep[]
+  requirements     Requirement[]
+  fees             Fee[]
+  procedureOffices ProcedureOffice[]
+  messages         ChatMessage[]
+  searches         SearchHistory[]
 
   @@map("procedures")
 }
 
 model ProcedureStep {
-  id           String @id @default(cuid())
-  procedureId  String
-  order        Int
-  instruction  String
+  id            String @id @default(cuid())
+  procedureId   String
+  order         Int
+  instruction   String
   instructionSi String
   instructionTa String
   estimatedTime String?
-  tips         String[]
-  requiredDocs String[]
+  tips          String[]
+  requiredDocs  String[]
 
   // Relations
   procedure Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
@@ -167,7 +167,7 @@ model Office {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  procedures ProcedureOffice[]
+  procedureOffices ProcedureOffice[]
 
   @@map("offices")
 }
