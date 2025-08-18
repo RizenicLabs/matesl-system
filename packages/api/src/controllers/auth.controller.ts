@@ -30,7 +30,7 @@ export class AuthController {
   async login(request: FastifyRequest, reply: FastifyReply) {
     try {
       const { email, password } = request.body as any;
-      const result = await this.authService.login({ email, password });
+      const result = await this.authService.login(email, password);
 
       if (!result.success) {
         reply.status(401);
@@ -142,7 +142,10 @@ export class AuthController {
       const result = await this.authService.forgotPassword(email);
 
       // Always return success for security (don't reveal if email exists)
-      return createSuccessResponse(null, 'If the email exists, a reset link has been sent');
+      return createSuccessResponse(
+        null,
+        'If the email exists, a reset link has been sent'
+      );
     } catch (error) {
       reply.status(500);
       return createErrorResponse('Internal server error');

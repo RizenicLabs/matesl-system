@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Always run from the project root
+cd "$(dirname "$0")/.." || exit 1
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -27,7 +30,6 @@ print_info() {
 }
 
 # Function to create a clickable link
-# Usage: link_text_with_url "text" "http://example.com"
 link_text_with_url() {
     local text="$1"
     local url="$2"
@@ -363,6 +365,9 @@ echo "• For production deployment, use strong JWT secrets and proper SSL certi
 echo ""
 
 echo -e "${BLUE}🚀 Quick Start Commands:${NC}"
+echo "# Run setup (from project root)"
+echo -e "${YELLOW}${ITALIC}~ cd scripts && ./setup.sh${NC}"
+echo ""
 echo "# Start all development servers"
 echo -e "${YELLOW}${ITALIC}~ npm run dev${NC}"
 echo ""

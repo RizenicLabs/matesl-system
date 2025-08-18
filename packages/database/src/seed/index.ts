@@ -1,6 +1,5 @@
 import {
   PrismaClient,
-  Procedure,
   ProcedureCategory,
   ProcedureStatus,
   ProcedureDifficulty,
