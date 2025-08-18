@@ -3,6 +3,7 @@ import {
   AIRequest,
   AIResponse,
   detectLanguage,
+  EntityType,
   ExtractedEntity,
   ProcedureCategory,
   ProcessingResult,
@@ -241,7 +242,7 @@ Provide a helpful, concise response in ${language} language:`;
     if (phones) {
       phones.forEach((phone) => {
         entities.push({
-          type: 'phone_number',
+          type: EntityType.PHONE_NUMBER,
           value: phone,
           confidence: 0.9,
           position: {
@@ -257,7 +258,7 @@ Provide a helpful, concise response in ${language} language:`;
     if (emails) {
       emails.forEach((email) => {
         entities.push({
-          type: 'email',
+          type: EntityType.EMAIL,
           value: email,
           confidence: 0.95,
           position: {
@@ -273,7 +274,7 @@ Provide a helpful, concise response in ${language} language:`;
     if (amounts) {
       amounts.forEach((amount) => {
         entities.push({
-          type: 'amount',
+          type: EntityType.AMOUNT,
           value: amount,
           confidence: 0.85,
           position: {

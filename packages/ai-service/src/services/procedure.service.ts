@@ -8,8 +8,10 @@ export class ProcedureService {
     const { limit = 5 } = options;
 
     // Tokenize and stem the query
-    const tokens = natural.WordTokenizer.prototype.tokenize(query.toLowerCase());
-    const stemmedTokens = tokens.map(token => this.stemmer.stem(token));
+    const tokens = natural.WordTokenizer.prototype.tokenize(
+      query.toLowerCase()
+    );
+    const stemmedTokens = tokens.map((token) => this.stemmer.stem(token));
 
     try {
       // Full-text search using PostgreSQL
