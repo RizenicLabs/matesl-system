@@ -1,4 +1,4 @@
-import { ProcedureCategory, Language } from '@matesl/shared';
+import { Language, ProcedureCategory } from '../enums';
 
 export interface AIRequest {
   message: string;
@@ -9,7 +9,7 @@ export interface AIRequest {
 }
 
 export interface AIResponse {
-  response: string;
+  message: string;
   confidence: number;
   category: ProcedureCategory;
   intent: string;
@@ -39,8 +39,10 @@ export interface ExtractedEntity {
 }
 
 export interface SuggestedAction {
-  type: 'search' | 'procedure' | 'office' | 'requirement';
+  type: 'search' | 'procedure' | 'office' | 'requirement' | 'faq';
   label: string;
+  labelSi?: string;
+  labelTa?: string;
   data: any;
 }
 

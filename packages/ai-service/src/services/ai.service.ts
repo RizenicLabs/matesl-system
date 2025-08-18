@@ -1,6 +1,6 @@
 import { OpenAIService } from './openai.service';
 import { HuggingFaceService } from './huggingface.service';
-import { AIRequest, ProcessingResult, ModelConfig } from '../types';
+import { AIRequest, ProcessingResult, ModelConfig } from '@matesl/shared';
 import Redis from 'ioredis';
 
 export class AIService {
@@ -13,7 +13,7 @@ export class AIService {
     this.openaiService = new OpenAIService();
     this.huggingfaceService = new HuggingFaceService();
     this.redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-    
+
     this.modelConfigs = [
       {
         name: 'gpt-4',
@@ -34,7 +34,7 @@ export class AIService {
 
   async processMessage(request: AIRequest): Promise<ProcessingResult> {
     const cacheKey = `ai:${JSON.stringify({ message: request.message, language: request.language })}`;
-    
+
     // Check cache first
     try {
       const cached = await this.redis.get(cacheKey);
@@ -49,10 +49,10 @@ export class AIService {
 
     // Try primary model (OpenAI) first
     let result: ProcessingResult;
-    
+
     if (this.modelConfigs[0].enabled) {
       result = await this.openaiService.processMessage(request);
-      
+
       // If OpenAI fails, fallback to Hugging Face
       if (!result.success && this.modelConfigs[1].enabled) {
         console.log('Falling back to Hugging Face...');
@@ -83,7 +83,7 @@ export class AIService {
   }
 
   async getModelStatus() {
-    return this.modelConfigs.map(config => ({
+    return this.modelConfigs.map((config) => ({
       name: config.name,
       provider: config.provider,
       enabled: config.enabled,

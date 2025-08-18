@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { AIService } from './services/ai.service';
-import { AIRequest } from './types';
+import { AIRequest } from '@matesl/shared';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -34,14 +34,14 @@ fastify.get('/models/status', async () => {
 fastify.post('/chat/process', async (request, reply) => {
   try {
     const aiRequest = request.body as AIRequest;
-    
+
     if (!aiRequest.message?.trim()) {
       reply.status(400);
       return { error: 'Message is required' };
     }
 
     const result = await aiService.processMessage(aiRequest);
-    
+
     if (!result.success) {
       reply.status(500);
       return { error: result.error || 'Processing failed' };

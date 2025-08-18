@@ -1,6 +1,13 @@
 import { HfInference } from '@huggingface/inference';
-import { AIRequest, AIResponse, ProcessingResult } from '../types';
-import { detectLanguage, ProcedureCategory } from '@matesl/shared';
+import {
+  AIRequest,
+  AIResponse,
+  detectLanguage,
+  ExtractedEntity,
+  ProcedureCategory,
+  ProcessingResult,
+  SuggestedAction,
+} from '@matesl/shared';
 import { ProcedureService } from './procedure.service';
 import natural from 'natural';
 
@@ -17,7 +24,7 @@ export class HuggingFaceService {
 
   async processMessage(request: AIRequest): Promise<ProcessingResult> {
     const startTime = Date.now();
-    
+
     try {
       const { message, language = detectLanguage(message) } = request;
 
@@ -31,18 +38,25 @@ export class HuggingFaceService {
       // Use classification model for intent recognition
       const intent = await this.classifyIntent(message);
       const category = this.categorizeRequest(message, intent);
-      
+
       // Generate response using text generation model
-      const response = await this.generateResponse(message, relevantProcedures, language);
+      const response = await this.generateResponse(
+        message,
+        relevantProcedures,
+        language
+      );
       const confidence = this.calculateConfidence(message, relevantProcedures);
 
       const aiResponse: AIResponse = {
-        response,
+        message: response,
         confidence,
         category,
         intent: intent.label || 'general_help',
         entities: this.extractEntities(message),
-        suggestedActions: this.generateSuggestedActions(intent, relevantProcedures),
+        suggestedActions: this.generateSuggestedActions(
+          intent,
+          relevantProcedures
+        ),
         language,
         procedureId: relevantProcedures[0]?.id,
       };
@@ -70,14 +84,16 @@ export class HuggingFaceService {
         model: 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
         inputs: text,
       });
-      return Array.isArray(response[0]) ? response[0] as number[] : [];
+      return Array.isArray(response[0]) ? (response[0] as number[]) : [];
     } catch (error) {
       console.error('Embedding error:', error);
       return [];
     }
   }
 
-  private async classifyIntent(message: string): Promise<{ label: string; score: number }> {
+  private async classifyIntent(
+    message: string
+  ): Promise<{ label: string; score: number }> {
     try {
       // Define government service intents
       const candidates = [
@@ -99,8 +115,8 @@ export class HuggingFaceService {
       });
 
       return {
-        label: result.labels[0].replace(' ', '_'),
-        score: result.scores[0],
+        label: result?.[0]?.label.replace(' ', '_'),
+        score: result?.[0]?.score,
       };
     } catch (error) {
       console.error('Intent classification error:', error);
@@ -110,19 +126,39 @@ export class HuggingFaceService {
 
   private categorizeRequest(message: string, intent: any): ProcedureCategory {
     const keywords = {
-      [ProcedureCategory.IDENTITY_DOCUMENTS]: ['nic', 'national identity', 'id card', 'identity card'],
+      [ProcedureCategory.IDENTITY_DOCUMENTS]: [
+        'nic',
+        'national identity',
+        'id card',
+        'identity card',
+      ],
       [ProcedureCategory.PASSPORTS]: ['passport', 'travel document', 'visa'],
-      [ProcedureCategory.BIRTH_CERTIFICATES]: ['birth certificate', 'birth cert', 'born'],
-      [ProcedureCategory.EDUCATION]: ['degree', 'certificate', 'school', 'university', 'education'],
-      [ProcedureCategory.BUSINESS]: ['business', 'company', 'registration', 'license'],
+      [ProcedureCategory.BIRTH_CERTIFICATES]: [
+        'birth certificate',
+        'birth cert',
+        'born',
+      ],
+      [ProcedureCategory.EDUCATION]: [
+        'degree',
+        'certificate',
+        'school',
+        'university',
+        'education',
+      ],
+      [ProcedureCategory.BUSINESS]: [
+        'business',
+        'company',
+        'registration',
+        'license',
+      ],
       [ProcedureCategory.VEHICLE]: ['vehicle', 'car', 'license', 'driving'],
       [ProcedureCategory.PROPERTY]: ['property', 'land', 'deed', 'ownership'],
     };
 
     const lowerMessage = message.toLowerCase();
-    
+
     for (const [category, terms] of Object.entries(keywords)) {
-      if (terms.some(term => lowerMessage.includes(term))) {
+      if (terms.some((term) => lowerMessage.includes(term))) {
         return category as ProcedureCategory;
       }
     }
@@ -164,7 +200,9 @@ Provide a helpful, concise response in ${language} language:`;
         },
       });
 
-      return response.generated_text || this.getFallbackResponse(procedure, language);
+      return (
+        response.generated_text || this.getFallbackResponse(procedure, language)
+      );
     } catch (error) {
       console.error('Text generation error:', error);
       return this.getFallbackResponse(procedures[0], language);
@@ -176,21 +214,23 @@ Provide a helpful, concise response in ${language} language:`;
 
     const tokens = this.tokenizer.tokenize(message.toLowerCase());
     const procedure = procedures[0];
-    
+
     // Calculate keyword matches
     const procedureTokens = this.tokenizer.tokenize(
       `${procedure.title} ${procedure.steps?.[0]?.instruction || ''}`.toLowerCase()
     );
-    
-    const matches = tokens.filter(token => procedureTokens.includes(token));
+
+    const matches = tokens.filter((token: any) =>
+      procedureTokens.includes(token)
+    );
     const confidence = Math.min(matches.length / Math.max(tokens.length, 1), 1);
-    
+
     return Math.max(confidence, 0.4); // Minimum confidence
   }
 
   private extractEntities(message: string): any[] {
-    const entities = [];
-    
+    const entities: ExtractedEntity[] = [];
+
     // Simple regex-based entity extraction
     const phoneRegex = /(\+94|0)[1-9][0-9]{8}/g;
     const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
@@ -199,12 +239,15 @@ Provide a helpful, concise response in ${language} language:`;
     // Extract phone numbers
     const phones = message.match(phoneRegex);
     if (phones) {
-      phones.forEach(phone => {
+      phones.forEach((phone) => {
         entities.push({
           type: 'phone_number',
           value: phone,
           confidence: 0.9,
-          position: { start: message.indexOf(phone), end: message.indexOf(phone) + phone.length },
+          position: {
+            start: message.indexOf(phone),
+            end: message.indexOf(phone) + phone.length,
+          },
         });
       });
     }
@@ -212,12 +255,15 @@ Provide a helpful, concise response in ${language} language:`;
     // Extract emails
     const emails = message.match(emailRegex);
     if (emails) {
-      emails.forEach(email => {
+      emails.forEach((email) => {
         entities.push({
           type: 'email',
           value: email,
           confidence: 0.95,
-          position: { start: message.indexOf(email), end: message.indexOf(email) + email.length },
+          position: {
+            start: message.indexOf(email),
+            end: message.indexOf(email) + email.length,
+          },
         });
       });
     }
@@ -225,12 +271,15 @@ Provide a helpful, concise response in ${language} language:`;
     // Extract amounts
     const amounts = message.match(amountRegex);
     if (amounts) {
-      amounts.forEach(amount => {
+      amounts.forEach((amount) => {
         entities.push({
           type: 'amount',
           value: amount,
           confidence: 0.85,
-          position: { start: message.indexOf(amount), end: message.indexOf(amount) + amount.length },
+          position: {
+            start: message.indexOf(amount),
+            end: message.indexOf(amount) + amount.length,
+          },
         });
       });
     }
@@ -246,7 +295,7 @@ Provide a helpful, concise response in ${language} language:`;
         type: 'procedure',
         label: 'View complete steps',
         data: { procedureId: procedures[0].id },
-      });
+      } as SuggestedAction);
     }
 
     if (intent.label === 'office_location') {
@@ -254,7 +303,7 @@ Provide a helpful, concise response in ${language} language:`;
         type: 'office',
         label: 'Find offices nearby',
         data: { search: true },
-      });
+      } as SuggestedAction);
     }
 
     if (intent.label === 'fee_inquiry') {
@@ -262,7 +311,7 @@ Provide a helpful, concise response in ${language} language:`;
         type: 'search',
         label: 'Check all fees',
         data: { query: 'fees charges' },
-      });
+      } as SuggestedAction);
     }
 
     return actions;

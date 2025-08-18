@@ -1,6 +1,13 @@
 import OpenAI from 'openai';
-import { AIRequest, AIResponse, ProcessingResult } from '../types';
-import { detectLanguage, ProcedureCategory } from '@matesl/shared';
+import {
+  AIRequest,
+  AIResponse,
+  detectLanguage,
+  ProcedureCategory,
+  ProcessingResult,
+  SuggestedAction,
+} from '@matesl/shared';
+import {} from '@matesl/shared';
 import { ProcedureService } from './procedure.service';
 
 export class OpenAIService {
@@ -16,10 +23,10 @@ export class OpenAIService {
 
   async processMessage(request: AIRequest): Promise<ProcessingResult> {
     const startTime = Date.now();
-    
+
     try {
       const { message, language = detectLanguage(message), context } = request;
-      
+
       // Get relevant procedures for context
       const relevantProcedures = await this.procedureService.searchProcedures(
         message,
@@ -96,12 +103,19 @@ export class OpenAIService {
       const extractedData = JSON.parse(functionCall?.arguments || '{}');
 
       const response: AIResponse = {
-        response: await this.generateResponse(extractedData, relevantProcedures, language),
+        message: await this.generateResponse(
+          extractedData,
+          relevantProcedures,
+          language
+        ),
         confidence: extractedData.confidence || 0.5,
         category: extractedData.category || ProcedureCategory.OTHER,
         intent: extractedData.intent || 'unclear',
         entities: extractedData.entities || [],
-        suggestedActions: this.generateSuggestedActions(extractedData, relevantProcedures),
+        suggestedActions: this.generateSuggestedActions(
+          extractedData,
+          relevantProcedures
+        ),
         language,
         procedureId: relevantProcedures[0]?.id,
       };
@@ -125,7 +139,9 @@ export class OpenAIService {
 
   private buildSystemPrompt(language: string, procedures: any[]): string {
     const procedureContext = procedures
-      .map(p => `${p.title}: ${p.steps[0]?.instruction || 'No steps available'}`)
+      .map(
+        (p) => `${p.title}: ${p.steps[0]?.instruction || 'No steps available'}`
+      )
       .join('\n');
 
     return `You are an AI assistant for Sri Lankan government services. Help users with:
@@ -149,7 +165,7 @@ export class OpenAIService {
 
   private buildUserPrompt(message: string, context?: any): string {
     let prompt = `User question: ${message}`;
-    
+
     if (context?.previousMessages?.length) {
       prompt += `\n\nPrevious conversation context:\n${context.previousMessages.join('\n')}`;
     }
@@ -168,13 +184,16 @@ export class OpenAIService {
 
     const procedure = procedures[0];
     const steps = procedure.steps.slice(0, 3); // First 3 steps
-    
+
     let response = `To ${procedure.title.toLowerCase()}:\n\n`;
-    
+
     steps.forEach((step: any, index: number) => {
-      const instruction = language === 'si' ? step.instructionSi : 
-                         language === 'ta' ? step.instructionTa : 
-                         step.instruction;
+      const instruction =
+        language === 'si'
+          ? step.instructionSi
+          : language === 'ta'
+            ? step.instructionTa
+            : step.instruction;
       response += `${index + 1}. ${instruction}\n`;
     });
 
@@ -186,7 +205,7 @@ export class OpenAIService {
   }
 
   private generateSuggestedActions(extractedData: any, procedures: any[]) {
-    const actions = [];
+    const actions: SuggestedAction[] = [];
 
     if (procedures.length) {
       actions.push({
